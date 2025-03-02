@@ -24,17 +24,20 @@ public class Lox {
 
     /**
      * Run a Lox file
+     * 
      * @param path path to the lox source code file
      * @throws IOException
      */
     private static void runFile(String path) throws IOException {
         byte[] bytes = Files.readAllBytes(Paths.get(path));
-        run(new String(bytes, Charset.defaultCharset())) ;
-        if (hadError) System.exit(65)
+        run(new String(bytes, Charset.defaultCharset()));
+        if (hadError)
+            System.exit(65);
     }
 
     /**
      * Run the interpeter interactively in a REPL-like environment.
+     * 
      * @throws IOException
      */
     private static void runPrompt() throws IOException {
@@ -44,7 +47,8 @@ public class Lox {
         for (;;) {
             System.out.print("> ");
             String line = reader.readLine();
-            if (line == null) break;
+            if (line == null)
+                break;
             run(line);
             hadError = false; // reset so an error doesn't kill the session
         }
@@ -52,24 +56,25 @@ public class Lox {
 
     /**
      * Scan source and produce a list of tokens
+     * 
      * @param source the lox source code, as a string
      */
-   private static void run(String source) {
+    private static void run(String source) {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.scanTokens();
 
         // print tokens for now
-       for (Token token : tokens) {
-           System.out.println(token);
-       }
-   }
+        for (Token token : tokens) {
+            System.out.println(token);
+        }
+    }
 
-   static void error(int line, String message) {
-       report(line, "", message);
-   }
+    static void error(int line, String message) {
+        report(line, "", message);
+    }
 
-   private static void report(int line, String where, String message) {
-       System.err.println("[line " + "] Error" + where + ": " + message);
-       hadError = true;
-   }
+    private static void report(int line, String where, String message) {
+        System.err.println("[line " + "] Error" + where + ": " + message);
+        hadError = true;
+    }
 }
