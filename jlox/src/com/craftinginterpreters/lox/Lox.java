@@ -69,10 +69,21 @@ public class Lox {
         }
     }
 
+    /**
+     * Wrapper around report, reporting an error on a given line with a message
+     * @param line The line the error occurred on
+     * @param message A message to accompany the error
+     */
     static void error(int line, String message) {
         report(line, "", message);
     }
 
+    /**
+     * Report an error and flag it in our object state
+     * @param line The line the error occurred on
+     * @param where TODO
+     * @param message Message to accompany the error
+     */
     private static void report(int line, String where, String message) {
         System.err.println("[line " + "] Error" + where + ": " + message);
         hadError = true;

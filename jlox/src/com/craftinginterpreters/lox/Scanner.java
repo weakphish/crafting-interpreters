@@ -195,6 +195,9 @@ class Scanner {
     /**
      * Essentially a conditional advance() - only consume current Character
      * if it's what we're looking for.
+     *
+     * @param expected The character to match
+     * @return Whether the character was matched and the pointer advanced
      */
     private boolean match(char expected) {
         if (isAtEnd())
@@ -206,14 +209,23 @@ class Scanner {
         return true;
     }
 
-    /** Lookahead by advancing without consuming */
+    /**
+     * Lookahead by advancing without consuming
+     *
+     * @return the next character
+     *
+     */
     private char peek() {
         if (isAtEnd())
             return '\0';
         return source.charAt(current);
     }
 
-    /** Lookahead an extra char */
+    /**
+     * Lookahead an extra char
+     *
+     * @return the extra-peeked character
+     */
     private char peekNext() {
         if (current + 1 >= source.length())
             return '\0';
@@ -242,7 +254,9 @@ class Scanner {
         return source.charAt(current++);
     }
 
-    /** Overload for single-char tokens that don't need a literal */
+    /**
+     * Overload for single-char tokens that don't need a literal
+     */
     private void addToken(TokenType type) {
         addToken(type, null);
     }
