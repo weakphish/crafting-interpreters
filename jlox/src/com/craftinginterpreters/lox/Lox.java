@@ -9,7 +9,10 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class Lox {
+    // fields are static so that successive calls to run() inside the REPL re-use the same interpeter
+    private static final Interpreter interpreter = new Interpreter();
     static boolean hadError = false;
+    static boolean hadRuntimeError = false;
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
@@ -31,8 +34,8 @@ public class Lox {
     private static void runFile(String path) throws IOException {
         byte[] bytes = Files.readAllBytes(Paths.get(path));
         run(new String(bytes, Charset.defaultCharset()));
-        if (hadError)
-            System.exit(65);
+        if (hadError) System.exit(65);
+        if (hadRuntimeError) System.exit(70);
     }
 
     /**
@@ -47,15 +50,16 @@ public class Lox {
         for (; ; ) {
             System.out.print("> ");
             String line = reader.readLine();
-            if (line == null)
-                break;
+            if (line == null) break;
             run(line);
             hadError = false; // reset so an error doesn't kill the session
         }
     }
 
     /**
-     * Scan source and produce a list of tokens
+     * Scan source and produce a list of tokens.
+     * Parse tokens into an expression.
+     * Interpeter expression.
      *
      * @param source the lox source code, as a string
      */
@@ -69,7 +73,7 @@ public class Lox {
         // Stop if there was a syntax error.
         if (hadError) return;
 
-        System.out.println(new AstPrinter().print(expression));
+        interpreter.interpret(expression);
     }
 
     /**
@@ -106,5 +110,10 @@ public class Lox {
         } else {
             report(token.line, " at '" + token.lexeme + "'", message);
         }
+    }
+
+    static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
+        hadRuntimeError = true;
     }
 }
