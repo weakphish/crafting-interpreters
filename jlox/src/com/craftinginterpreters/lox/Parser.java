@@ -23,7 +23,7 @@ class Parser {
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
         return statements;
     }
@@ -32,9 +32,28 @@ class Parser {
         return equality();
     }
 
+    /**
+     * Method we call repeatedly when parsing a series of statements in a block or a script, so probably the right place
+     * to synchronize when the parser goes into panic mode. Whole thing is wrapped in a try/catch, so if an exception is
+     * thrown when parsing, the parser will recover to the next statement or declaration.
+     *
+     * @return The parsed declaration statement
+     */
+    private Stmt declaration() {
+        try {
+            if (match(VAR)) return varDeclaration();
+            // if no match for a declaration, fall thru to statement (recall precedence)
+            return statement();
+        } catch (ParseError error) {
+            synchronize();
+            return null;
+        }
+    }
+
     private Stmt statement() {
         if (match(PRINT)) return printStatement();
 
+        // if no match for a statement, fall thru to expression (recall precedence)
         return expressionStatement();
     }
 
@@ -48,6 +67,28 @@ class Parser {
         Expr value = expression();
         consume(SEMICOLON, "Expect ';' after value");
         return new Stmt.Print(value);
+    }
+
+    /**
+     * As always, the recursive descent code follows the grammar rule.
+     * The parser has already matched the var token, so next it requires and consumes an identifier token for the
+     * variable name. Then, if it sees an = token, it knows there is an initializer expression and parses it.
+     * Otherwise, it leaves the initializer null.
+     * Finally, it consumes the required semicolon at the end of the statement.
+     * All this gets wrapped in a Stmt.Var syntax tree node and we’re groovy.
+     *
+     * @return parsed variable declaration statement
+     */
+    private Stmt varDeclaration() {
+        Token name = consume(IDENTIFIER, "Expect variable name");
+
+        Expr initializer = null;
+        if (match(EQUAL)) {
+            initializer = expression();
+        }
+
+        consume(SEMICOLON, "Expect ';' after variable declaration");
+        return new Stmt.Var(name, initializer);
     }
 
     private Expr equality() {
@@ -119,12 +160,19 @@ class Parser {
             return new Expr.Literal(previous().literal);
         }
 
+        // variable expression (not declaration)
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
+        }
+
+        // consume inner expression of the grouping, then the right paren
         if (match(LEFT_PAREN)) {
             Expr expr = expression();
             consume(RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
         }
 
+        // if we fell thru to here, nothing matched
         throw error(peek(), "Expect expression.");
     }
 
