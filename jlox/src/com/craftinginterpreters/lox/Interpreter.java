@@ -1,19 +1,21 @@
 package com.craftinginterpreters.lox;
 
-public class Interpreter implements Expr.Visitor<Object> {
+import java.util.List;
+
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { // statements produce no value, hence 'void'
     /**
      * This takes in a syntax tree for an expression and evaluates it.
      * If that succeeds, evaluate() returns an object for the result value.
-     * interpret() converts that to a string and shows it to the user.
      *
-     * @param expression The expression to interpret
+     * @param statements A list of statements - aka a program - to evaluate
      */
-    void interpret(Expr expression) {
+    void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
-        } catch (RuntimeError error) {
-            Lox.runtimeError(error);
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } catch (RuntimeError e) {
+            Lox.runtimeError(e);
         }
     }
 
@@ -118,6 +120,15 @@ public class Interpreter implements Expr.Visitor<Object> {
         return expr.accept(this);
     }
 
+    /**
+     * Statement analogue to evaluate method we have for expressions
+     *
+     * @param stmt The statement to execute
+     */
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
     private boolean isTruthy(Object object) {
         if (object == null) return false;
         if (object instanceof Boolean) return (boolean) object;
@@ -143,5 +154,18 @@ public class Interpreter implements Expr.Visitor<Object> {
         }
 
         return object.toString();
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
     }
 }
