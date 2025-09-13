@@ -3,6 +3,8 @@ package com.craftinginterpreters.lox;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { // statements produce no value, hence 'void'
+    private final Environment environment = new Environment();
+
     /**
      * This takes in a syntax tree for an expression and evaluates it.
      * If that succeeds, evaluate() returns an object for the result value.
@@ -24,7 +26,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
         Object left = evaluate(expr.left);
         Object right = evaluate(expr.right);
 
-        switch (expr.operator.type) {
+        switch (expr.operator.type()) {
             case GREATER:
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left > (double) right;
@@ -49,7 +51,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
                 }
 
                 if (left instanceof String && right instanceof String) {
-                    return (String) left + (String) right;
+                    return left + (String) right;
                 }
                 // if type checks don't succeed, it's wrong
                 throw new RuntimeError(expr.operator, "Operands must be two numbers or two strings.");
@@ -87,7 +89,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
         // we can see here that our interpreter is doing post-order traversal - each node evaluates it's children before
         // doing it's own work
         Object right = evaluate(expr.right);
-        switch (expr.operator.type) {
+        switch (expr.operator.type()) {
             case MINUS:
                 checkNumberOperand(expr.operator, right);
                 return -(double) right;
@@ -97,6 +99,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
 
         // unreachable
         return null;
+    }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return environment.get(expr.name);
     }
 
     private void checkNumberOperand(Token operator, Object operand) {
@@ -166,6 +173,24 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
     public Void visitPrintStmt(Stmt.Print stmt) {
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
+        return null;
+    }
+
+    /**
+     * If the variable has an initializer, evaluate it. If not, set the value to nil (null in Java).
+     * Then, bind the variable to the value in the Environment.
+     *
+     * @param stmt The variable statement
+     * @return Void
+     */
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
+
+        environment.define(stmt.name.lexeme(), value);
         return null;
     }
 }

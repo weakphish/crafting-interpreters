@@ -157,7 +157,7 @@ class Parser {
         if (match(NIL)) return new Expr.Literal(null);
 
         if (match(NUMBER, STRING)) {
-            return new Expr.Literal(previous().literal);
+            return new Expr.Literal(previous().literal());
         }
 
         // variable expression (not declaration)
@@ -220,7 +220,7 @@ class Parser {
      */
     private boolean check(TokenType type) {
         if (isAtEnd()) return false;
-        return peek().type == type;
+        return peek().type() == type;
     }
 
     /**
@@ -234,7 +234,7 @@ class Parser {
     }
 
     private boolean isAtEnd() {
-        return peek().type == EOF;
+        return peek().type() == EOF;
     }
 
     private Token peek() {
@@ -260,9 +260,9 @@ class Parser {
         advance();
 
         while (!isAtEnd()) {
-            if (previous().type == SEMICOLON) return;
+            if (previous().type() == SEMICOLON) return;
 
-            switch (peek().type) {
+            switch (peek().type()) {
                 case CLASS:
                 case FUN:
                 case VAR:
