@@ -29,7 +29,7 @@ class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return assignment();
     }
 
     /**
@@ -52,6 +52,7 @@ class Parser {
 
     private Stmt statement() {
         if (match(PRINT)) return printStatement();
+        if (match(LEFT_BRACE)) return new Stmt.Block(block());
 
         // if no match for a statement, fall thru to expression (recall precedence)
         return expressionStatement();
@@ -61,6 +62,50 @@ class Parser {
         Expr expr = expression();
         consume(SEMICOLON, "Expect ';' after value");
         return new Stmt.Expression(expr);
+    }
+
+    /**
+     * Gulp up all the statements into a list till we hit the matching brace.
+     *
+     * @return
+     */
+    private List<Stmt> block() {
+        List<Stmt> statements = new ArrayList<>();
+
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(declaration());
+        }
+        consume(RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
+    }
+
+    /**
+     * Something to note is that every valid assignment target works as a normal expressions.
+     * We parse the left-hand side, which can be any expression of higher precedence.
+     * If we find an =, parse the right-hand side and wrap it all up in an assignment expression node.
+     * Instead of looping like other operators, recursively call assignment() to parse right-hand side.
+     * We can parse the left-hand side as if it were an expression, and then produce a syntax tree that
+     * turns it into an assignment target after the fact.
+     *
+     * @return Parsed assignment expression
+     */
+    private Expr assignment() {
+        Expr expr = equality();
+
+        if (match(EQUAL)) {
+            // look at left-hand side to figure out what kind of assignment target this is
+            Token equals = previous();
+            Expr value = assignment();
+
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable) expr).name;
+                return new Expr.Assign(name, value);
+            }
+            // don't throw it because we need to synchronize, not explode
+            error(equals, "Invalid assignment target.");
+        }
+        return expr;
     }
 
     private Stmt printStatement() {
@@ -237,10 +282,20 @@ class Parser {
         return peek().type() == EOF;
     }
 
+    /**
+     * Get the current token w/o consuming
+     *
+     * @return The current token
+     */
     private Token peek() {
         return tokens.get(current);
     }
 
+    /**
+     * Get the token prior to the current pointer.
+     *
+     * @return The prior token
+     */
     private Token previous() {
         return tokens.get(current - 1);
     }

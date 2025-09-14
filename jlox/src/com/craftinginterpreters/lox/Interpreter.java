@@ -3,7 +3,7 @@ package com.craftinginterpreters.lox;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { // statements produce no value, hence 'void'
-    private final Environment environment = new Environment();
+    private Environment environment = new Environment();
 
     /**
      * This takes in a syntax tree for an expression and evaluates it.
@@ -136,6 +136,30 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
         stmt.accept(this);
     }
 
+    /**
+     * Execute a block in a new environment this interpreter assumes, then re-assume the original environment.
+     *
+     * @param statements  The block's statements
+     * @param environment The new environment to use for the block
+     */
+    void executeBlock(List<Stmt> statements, Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
+    }
+
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
     private boolean isTruthy(Object object) {
         if (object == null) return false;
         if (object instanceof Boolean) return (boolean) object;
@@ -192,5 +216,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
 
         environment.define(stmt.name.lexeme(), value);
         return null;
+    }
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
     }
 }
