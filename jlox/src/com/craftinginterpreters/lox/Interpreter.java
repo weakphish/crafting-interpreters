@@ -85,6 +85,19 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
     }
 
     @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        Object left = evaluate(expr.left);
+
+        if (expr.operator.type() == TokenType.OR) {
+            if (isTruthy(left)) return left;
+        } else {
+            if (!isTruthy(left)) return left;
+        }
+
+        return evaluate(expr.right);
+    }
+
+    @Override
     public Object visitUnaryExpr(Expr.Unary expr) {
         // we can see here that our interpreter is doing post-order traversal - each node evaluates it's children before
         // doing it's own work
@@ -194,6 +207,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
     }
 
     @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        // it's funny to me that we make an if/else block that mirrors the if/else under evaluation
+        if (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.thenBranch);
+        } else if (stmt.elseBranch != null) {
+            execute(stmt.elseBranch);
+        }
+        return null;
+    }
+
+    @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
@@ -215,6 +239,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
         }
 
         environment.define(stmt.name.lexeme(), value);
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        while (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.body);
+        }
         return null;
     }
 
