@@ -1,5 +1,6 @@
 package com.craftinginterpreters.lox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { // statements produce no value, hence 'void'
@@ -65,6 +66,31 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
 
         // Unreachable.
         return null;
+    }
+
+    /**
+     * First, evaluate the expression for the callee. Usually just an expression that's an identifier that looks up the
+     * function by its name, but could be anything. Evaluate each of the arguments in order and store the results in a
+     * list. Then, perform the call on the interface-casted callee.
+     *
+     * @param expr
+     * @return
+     */
+    @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        Object callee = evaluate(expr.callee);
+
+        List<Object> arguments = new ArrayList<>();
+        for (Expr argument : expr.arguments) {
+            // note that the argument order is preserved, which may have side-effects if the argument expression has side effects
+            arguments.add(evaluate(argument));
+        }
+        if (!(callee instanceof LoxCallable)) {
+            throw new RuntimeError(expr.paren, "Can only call functions and classes.");
+        }
+
+        LoxCallable function = (LoxCallable) callee;
+        return function.call(this, arguments);
     }
 
     /**

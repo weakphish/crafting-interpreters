@@ -298,7 +298,50 @@ class Parser {
             Expr right = unary();
             return new Expr.Unary(operator, right);
         }
-        return primary();
+        return call();
+    }
+
+    /**
+     * More or less the arguments grammar rule translated to code, except also handling the zero-argument case. If the
+     * first-next token is ), don't try and parse any arguments.
+     *
+     * @param callee The callee expression
+     * @return parsed Expr of arguments
+     */
+    private Expr finishCall(Expr callee) {
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (arguments.size() >= 255) {
+                    error(peek(), "Can't have more than 255 arguments.");
+                }
+                arguments.add(expression());
+            } while (match(COMMA));
+        }
+
+        Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments.");
+
+        return new Expr.Call(callee, paren, arguments);
+    }
+
+    /**
+     * Calling a function. First, we parse a primary expression, the “left operand” to the call. Then, each time we see
+     * a (, we call finishCall() to parse the call expression using the previously parsed expression as the callee.
+     * The returned expression becomes the new expr and we loop to see if the result is itself called.
+     *
+     * @return Parsed Expr
+     */
+    private Expr call() {
+        Expr expr = primary();
+
+        while (true) {
+            if (match(LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+        return expr;
     }
 
     private Expr primary() {
