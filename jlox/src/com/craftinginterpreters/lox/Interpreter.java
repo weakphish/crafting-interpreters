@@ -4,7 +4,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { // statements produce no value, hence 'void'
-    private Environment environment = new Environment();
+    final Environment globals = new Environment();
+    private Environment environment = globals;
+
+    Interpreter() {
+        globals.define("clock", new LoxCallable() {
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return (double) System.currentTimeMillis() / 1000.0;
+            }
+
+            @Override
+            public int arity() {
+                return 0;
+            }
+
+            @Override
+            public String toString() {
+                return "<native fn>";
+            }
+        });
+    }
 
     /**
      * This takes in a syntax tree for an expression and evaluates it.
@@ -73,8 +93,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
      * function by its name, but could be anything. Evaluate each of the arguments in order and store the results in a
      * list. Then, perform the call on the interface-casted callee.
      *
-     * @param expr
-     * @return
+     * @param expr The excpression to interpret
+     * @return the value of the function call
      */
     @Override
     public Object visitCallExpr(Expr.Call expr) {
@@ -90,6 +110,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> { /
         }
 
         LoxCallable function = (LoxCallable) callee;
+
+        // check arity
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(expr.paren, "Expected " + function.arity() + " arguments but got " + arguments.size() + ".");
+        }
+
         return function.call(this, arguments);
     }
 

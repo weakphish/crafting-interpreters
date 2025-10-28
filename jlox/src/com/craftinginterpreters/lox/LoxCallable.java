@@ -13,4 +13,10 @@ interface LoxCallable {
      * @return the value the call expression produces
      */
     Object call(Interpreter interpreter, List<Object> arguments);
+
+    /**
+     * Fancy word for argument count.
+     * @return the callable's arity
+     */
+    int arity();
 }
